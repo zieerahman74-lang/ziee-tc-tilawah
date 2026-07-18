@@ -339,9 +339,29 @@ function gabungDenganKode(e) {
 var kodeAktif = "";
 var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
 
-function mulaiMeeting(kode, judul) {
+// Server Jitsi bebas-batas-waktu (bisa diganti di firebase-config.js)
+var JITSI_SERVER = window.JITSI_SERVER || "meet.ffmuc.net";
+var jitsiSiap = null; // promise pemuatan external_api.js
+
+function siapkanJitsi() {
+  if (!jitsiSiap) {
+    jitsiSiap = (typeof JitsiMeetExternalAPI !== "undefined")
+      ? Promise.resolve()
+      : muatSkrip("https://" + JITSI_SERVER + "/external_api.js");
+  }
+  return jitsiSiap;
+}
+
+async function mulaiMeeting(kode, judul) {
   kodeAktif = kode;
   var adalahHost = pengguna.peran === "pelatih" || pengguna.peran === "admin";
+
+  try {
+    await siapkanJitsi();
+  } catch (e) {
+    alert("Gagal memuat mesin video dari " + JITSI_SERVER + ".\nPeriksa koneksi internet lalu coba lagi.");
+    return;
+  }
 
   $("meeting-judul").textContent = judul || "Sesi TC";
   $("meeting-kode").textContent = "Kode ruang: " + kode;
@@ -365,7 +385,7 @@ function mulaiMeeting(kode, judul) {
   ];
 
   var namaRuang = "LPTQNTBTC-" + kode.replace(/[^A-Za-z0-9]/g, "");
-  jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
+  jitsiApi = new JitsiMeetExternalAPI(JITSI_SERVER, {
     roomName: namaRuang,
     parentNode: $("wadah-jitsi"),
     lang: "id",
@@ -409,6 +429,9 @@ function salinKode() {
       $("mode-info").textContent = "⚠️ Firebase gagal dimuat — beralih ke Mode Lokal.";
     }
   }
+
+  // Muat mesin video lebih awal supaya masuk ruang terasa cepat
+  siapkanJitsi().catch(function () { jitsiSiap = null; });
 
   // Link undangan: https://.../?kode=TC-XXXXXX
   var paramKode = new URLSearchParams(location.search).get("kode");

@@ -30,3 +30,13 @@ window.KODE_PELATIH = "TILAWAH2026";
 
 // Kode rahasia untuk mendaftar sebagai ADMIN (pembuat ruangan TC):
 window.KODE_ADMIN = "ADMINLPTQ2026";
+
+// ============================================================
+// SERVER VIDEO (Jitsi Meet)
+// ------------------------------------------------------------
+// "meet.jit.si" resmi tapi MEMBATASI 5 MENIT tanpa login Google.
+// Pakai server publik gratis tanpa batas waktu, mis.:
+//   "meet.ffmuc.net"  (Freifunk Muenchen, Jerman — stabil & bebas)
+// Bila server penuh/bermasalah, cukup ganti nilai di bawah ini.
+// ============================================================
+window.JITSI_SERVER = "meet.ffmuc.net";

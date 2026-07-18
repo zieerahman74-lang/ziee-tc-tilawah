@@ -5,7 +5,7 @@ Aplikasi web (mirip Zoom) khusus untuk **Training Center (TC) Tilawah online LPT
 ## ✨ Fitur
 - Login / daftar dengan **email + nama + sandi** (Mode Lokal; opsional Firebase agar tersinkron antar-perangkat)
 - Peran **Pelatih** (buat sesi & dapat kode ruang) dan **Peserta** (gabung pakai kode)
-- Video & audio call lewat **Jitsi Meet** (server publik gratis, tanpa batas waktu), sudah termasuk:
+- Video & audio call lewat **Jitsi Meet** di server publik gratis **tanpa batas waktu** (default: `meet.ffmuc.net` — ganti lewat `window.JITSI_SERVER` di `firebase-config.js`; catatan: `meet.jit.si` resmi kini membatasi 5 menit tanpa login Google, jadi tidak dipakai), sudah termasuk:
   - Kamera & pengaturan interface
   - **Spotlight / fokus 1 peserta** membaca
   - **Mute / unmute peserta** oleh pelatih (moderator)
