@@ -1,0 +1,13 @@
+{
+  "name": "Ziee TC Tilawah",
+  "short_name": "TC Tilawah",
+  "description": "Pelatihan Tilawah Online — Pelatih & Peserta",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "lang": "id",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

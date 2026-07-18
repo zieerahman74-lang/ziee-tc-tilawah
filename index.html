@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>Ziee TC Tilawah — Pelatihan Tilawah Online</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== LAYAR MASUK / DAFTAR ========== -->
+<div id="layar-auth" class="layar aktif">
+  <div class="auth-kotak">
+    <div class="logo-besar">🕌</div>
+    <h1>Ziee TC Tilawah</h1>
+    <p class="subjudul">Pelatihan Tilawah Online — Pelatih & Peserta</p>
+
+    <div class="tab-baris">
+      <button id="tab-masuk" class="tab aktif" onclick="pilihTab('masuk')">Masuk</button>
+      <button id="tab-daftar" class="tab" onclick="pilihTab('daftar')">Daftar</button>
+    </div>
+
+    <!-- Form Masuk -->
+    <form id="form-masuk" onsubmit="prosesMasuk(event)">
+      <label>Email
+        <input type="email" id="masuk-email" required placeholder="nama@email.com" autocomplete="email">
+      </label>
+      <label>Sandi
+        <input type="password" id="masuk-sandi" required placeholder="Sandi Anda" autocomplete="current-password">
+      </label>
+      <button type="submit" class="tombol utama">Masuk</button>
+    </form>
+
+    <!-- Form Daftar -->
+    <form id="form-daftar" class="tersembunyi" onsubmit="prosesDaftar(event)">
+      <label>Nama Lengkap
+        <input type="text" id="daftar-nama" required placeholder="Nama lengkap Anda" autocomplete="name">
+      </label>
+      <label>Email
+        <input type="email" id="daftar-email" required placeholder="nama@email.com" autocomplete="email">
+      </label>
+      <label>Sandi (minimal 6 huruf/angka)
+        <input type="password" id="daftar-sandi" required minlength="6" placeholder="Buat sandi" autocomplete="new-password">
+      </label>
+      <label class="baris-cek">
+        <input type="checkbox" id="daftar-sebagai-pelatih" onchange="toggleKodePelatih()">
+        <span>Saya mendaftar sebagai <b>Pelatih</b></span>
+      </label>
+      <label id="wadah-kode-pelatih" class="tersembunyi">Kode Pelatih
+        <input type="text" id="daftar-kode-pelatih" placeholder="Kode khusus dari admin">
+      </label>
+      <button type="submit" class="tombol utama">Daftar</button>
+    </form>
+
+    <p id="auth-pesan" class="pesan"></p>
+    <p id="mode-info" class="mode-info"></p>
+  </div>
+</div>
+
+<!-- ========== LAYAR DASBOR ========== -->
+<div id="layar-dasbor" class="layar">
+  <header class="atas">
+    <div class="atas-kiri">
+      <span class="logo-kecil">🕌</span>
+      <div>
+        <div id="dasbor-nama" class="nama-pengguna">—</div>
+        <div id="dasbor-peran" class="peran-pengguna">—</div>
+      </div>
+    </div>
+    <button class="tombol kecil abu" onclick="keluar()">Keluar</button>
+  </header>
+
+  <main class="isi-dasbor">
+
+    <!-- Gabung dengan kode (semua pengguna) -->
+    <section class="kartu">
+      <h2>Gabung Sesi TC</h2>
+      <p class="ket">Masukkan kode ruang yang dibagikan pelatih.</p>
+      <form class="baris-gabung" onsubmit="gabungDenganKode(event)">
+        <input type="text" id="input-kode" placeholder="Contoh: TC-ABCD12" required>
+        <button type="submit" class="tombol utama">Gabung</button>
+      </form>
+    </section>
+
+    <!-- Buat sesi (khusus pelatih) -->
+    <section id="bagian-pelatih" class="kartu tersembunyi">
+      <h2>Buat Sesi TC Baru</h2>
+      <form onsubmit="buatSesi(event)">
+        <label>Judul Sesi
+          <input type="text" id="sesi-judul" required placeholder="Contoh: TC Tilawah Angkatan 5 — Maqam Bayyati">
+        </label>
+        <div class="baris-2">
+          <label>Tanggal
+            <input type="date" id="sesi-tanggal" required>
+          </label>
+          <label>Jam
+            <input type="time" id="sesi-jam" required>
+          </label>
+        </div>
+        <button type="submit" class="tombol utama">Buat Sesi</button>
+      </form>
+    </section>
+
+    <!-- Daftar sesi -->
+    <section class="kartu">
+      <h2>Jadwal Sesi TC</h2>
+      <div id="daftar-sesi" class="daftar-sesi">
+        <p class="ket">Memuat…</p>
+      </div>
+    </section>
+
+    <section class="kartu tips">
+      <h2>Adab Sesi Tilawah</h2>
+      <ul>
+        <li>🎙️ Matikan mic saat bukan giliran Anda membaca.</li>
+        <li>✋ Gunakan tombol <b>Angkat Tangan</b> untuk minta giliran tilawah.</li>
+        <li>👂 Simak bacaan peserta lain dengan tenang.</li>
+        <li>🎧 Gunakan headset agar suara tilawah lebih jernih.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<!-- ========== LAYAR MEETING ========== -->
+<div id="layar-meeting" class="layar">
+  <header class="atas meeting-atas">
+    <div class="atas-kiri">
+      <span class="logo-kecil">🕌</span>
+      <div>
+        <div id="meeting-judul" class="nama-pengguna">Sesi TC</div>
+        <div id="meeting-kode" class="peran-pengguna">—</div>
+      </div>
+    </div>
+    <div class="atas-kanan">
+      <button class="tombol kecil abu" onclick="salinKode()">Salin Kode</button>
+      <button class="tombol kecil merah" onclick="tinggalkanMeeting()">Keluar Sesi</button>
+    </div>
+  </header>
+  <div id="wadah-jitsi"></div>
+</div>
+
+<script src="https://meet.jit.si/external_api.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
