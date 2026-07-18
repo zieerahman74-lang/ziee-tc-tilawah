@@ -45,12 +45,15 @@
       <label>Sandi (minimal 6 huruf/angka)
         <input type="password" id="daftar-sandi" required minlength="6" placeholder="Buat sandi" autocomplete="new-password">
       </label>
-      <label class="baris-cek">
-        <input type="checkbox" id="daftar-sebagai-pelatih" onchange="toggleKodePelatih()">
-        <span>Saya mendaftar sebagai <b>Pelatih</b></span>
+      <label>Daftar sebagai
+        <select id="daftar-peran" onchange="gantiPeranDaftar()">
+          <option value="peserta">🧕 Peserta TC</option>
+          <option value="pelatih">🎓 Pelatih (Host)</option>
+          <option value="admin">🛡️ Admin (pembuat ruangan)</option>
+        </select>
       </label>
-      <label id="wadah-kode-pelatih" class="tersembunyi">Kode Pelatih
-        <input type="text" id="daftar-kode-pelatih" placeholder="Kode khusus dari admin">
+      <label id="wadah-kode-pelatih" class="tersembunyi"><span id="label-kode-khusus">Kode Pelatih</span>
+        <input type="text" id="daftar-kode-pelatih" placeholder="Kode khusus">
       </label>
       <button type="submit" class="tombol utama">Daftar</button>
     </form>
@@ -85,28 +88,24 @@
       </form>
     </section>
 
-    <!-- Buat sesi (khusus pelatih) -->
+    <!-- Buat ruangan (khusus ADMIN) -->
     <section id="bagian-pelatih" class="kartu tersembunyi">
-      <h2>Buat Sesi TC Baru</h2>
+      <h2>🛡️ Buat Ruangan TC (Admin)</h2>
+      <p class="ket">Buat 1 ruangan untuk tiap cabang TC. Kode & link ruangan bersifat tetap — bagikan ke pelatih dan peserta cabang tersebut.</p>
       <form onsubmit="buatSesi(event)">
-        <label>Judul Sesi
-          <input type="text" id="sesi-judul" required placeholder="Contoh: TC Tilawah Angkatan 5 — Maqam Bayyati">
+        <label>Nama Ruangan / Cabang
+          <input type="text" id="sesi-judul" required placeholder="Contoh: TC Cabang Mataram">
         </label>
-        <div class="baris-2">
-          <label>Tanggal
-            <input type="date" id="sesi-tanggal" required>
-          </label>
-          <label>Jam
-            <input type="time" id="sesi-jam" required>
-          </label>
-        </div>
-        <button type="submit" class="tombol utama">Buat Sesi</button>
+        <label>Kode Khusus (opsional — huruf/angka, tanpa spasi)
+          <input type="text" id="ruang-kode" placeholder="Contoh: MATARAM → jadi TC-MATARAM">
+        </label>
+        <button type="submit" class="tombol utama">Buat Ruangan</button>
       </form>
     </section>
 
-    <!-- Daftar sesi -->
+    <!-- Daftar ruangan -->
     <section class="kartu">
-      <h2>Jadwal Sesi TC</h2>
+      <h2>Daftar Ruangan TC</h2>
       <div id="daftar-sesi" class="daftar-sesi">
         <p class="ket">Memuat…</p>
       </div>

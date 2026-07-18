@@ -148,8 +148,10 @@ function pilihTab(mana) {
   pesanAuth("", true);
 }
 
-function toggleKodePelatih() {
-  $("wadah-kode-pelatih").classList.toggle("tersembunyi", !$("daftar-sebagai-pelatih").checked);
+function gantiPeranDaftar() {
+  var p = $("daftar-peran").value;
+  $("wadah-kode-pelatih").classList.toggle("tersembunyi", p === "peserta");
+  $("label-kode-khusus").textContent = p === "admin" ? "Kode Admin" : "Kode Pelatih";
 }
 
 async function prosesDaftar(e) {
@@ -157,14 +159,16 @@ async function prosesDaftar(e) {
   var nama = $("daftar-nama").value.trim();
   var email = $("daftar-email").value.trim().toLowerCase();
   var sandi = $("daftar-sandi").value;
-  var peran = "peserta";
+  var peran = $("daftar-peran").value;
+  var kodeKhusus = $("daftar-kode-pelatih").value.trim();
 
-  if ($("daftar-sebagai-pelatih").checked) {
-    if ($("daftar-kode-pelatih").value.trim() !== window.KODE_PELATIH) {
-      pesanAuth("Kode Pelatih salah. Minta kode ke admin, atau daftar sebagai peserta.", false);
-      return;
-    }
-    peran = "pelatih";
+  if (peran === "pelatih" && kodeKhusus !== window.KODE_PELATIH) {
+    pesanAuth("Kode Pelatih salah. Minta kode ke admin, atau daftar sebagai peserta.", false);
+    return;
+  }
+  if (peran === "admin" && kodeKhusus !== window.KODE_ADMIN) {
+    pesanAuth("Kode Admin salah.", false);
+    return;
   }
 
   try {
@@ -212,9 +216,10 @@ async function keluar() {
 
 /* ---------------- DASBOR ---------------- */
 function bukaDasbor() {
+  var labelPeran = { admin: "🛡️ Admin", pelatih: "🎓 Pelatih (Host)", peserta: "🧕 Peserta TC" };
   $("dasbor-nama").textContent = pengguna.nama;
-  $("dasbor-peran").textContent = pengguna.peran === "pelatih" ? "🎓 Pelatih (Host)" : "🧕 Peserta TC";
-  $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "pelatih");
+  $("dasbor-peran").textContent = labelPeran[pengguna.peran] || "🧕 Peserta TC";
+  $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "admin");
   tampilLayar("layar-dasbor");
   muatDaftarSesi();
 
@@ -235,11 +240,13 @@ async function muatDaftarSesi() {
     wadah.innerHTML = '<p class="ket">Gagal memuat jadwal: ' + e.message + "</p>";
     return;
   }
-  sesi.sort(function (a, b) { return (a.tanggal + a.jam).localeCompare(b.tanggal + b.jam); });
+  sesi.sort(function (a, b) { return (a.judul || "").localeCompare(b.judul || ""); });
 
   if (!sesi.length) {
-    wadah.innerHTML = '<p class="ket">Belum ada sesi TC. ' +
-      (pengguna.peran === "pelatih" ? "Buat sesi baru di atas." : "Tunggu pelatih membuat sesi, atau gabung dengan kode.") + "</p>";
+    wadah.innerHTML = '<p class="ket">' +
+      (pengguna.peran === "admin"
+        ? "Belum ada ruangan. Buat ruangan TC untuk tiap cabang di atas."
+        : "Gunakan <b>link atau kode ruangan dari admin</b> cabang Anda (daftar ruangan hanya tampil di perangkat admin).") + "</p>";
     return;
   }
 
@@ -247,23 +254,24 @@ async function muatDaftarSesi() {
   sesi.forEach(function (s) {
     var div = document.createElement("div");
     div.className = "item-sesi";
-    var boleh_hapus = pengguna.peran === "pelatih" && s.pembuatEmail === pengguna.email;
+    var adminKah = pengguna.peran === "admin";
     div.innerHTML =
       '<div class="info">' +
         '<div class="judul"></div>' +
-        '<div class="detail">📅 ' + formatTanggal(s.tanggal) + " · 🕐 " + (s.jam || "-") +
-        ' · Kode: <span class="kode">' + s.kode + "</span><br>👤 Pelatih: <span class='pembuat'></span></div>" +
+        '<div class="detail">Kode: <span class="kode">' + s.kode + "</span> · 👤 Dibuat: <span class='pembuat'></span></div>" +
       "</div>" +
       '<div class="aksi">' +
-        '<button class="tombol kecil emas btn-masuk">Masuk Sesi</button>' +
-        (boleh_hapus ? '<button class="tombol kecil merah btn-hapus">Hapus</button>' : "") +
+        '<button class="tombol kecil emas btn-masuk">Masuk</button>' +
+        '<button class="tombol kecil abu btn-undang">Salin Undangan</button>' +
+        (adminKah ? '<button class="tombol kecil merah btn-hapus">Hapus</button>' : "") +
       "</div>";
     div.querySelector(".judul").textContent = s.judul;
     div.querySelector(".pembuat").textContent = s.pembuatNama || "-";
     div.querySelector(".btn-masuk").onclick = function () { mulaiMeeting(s.kode, s.judul); };
-    if (boleh_hapus) {
+    div.querySelector(".btn-undang").onclick = function () { salinUndangan(s.kode, s.judul); };
+    if (adminKah) {
       div.querySelector(".btn-hapus").onclick = async function () {
-        if (!confirm('Hapus sesi "' + s.judul + '"?')) return;
+        if (!confirm('Hapus ruangan "' + s.judul + '"?')) return;
         await Simpan().hapusSesi(s.id);
         muatDaftarSesi();
       };
@@ -274,12 +282,21 @@ async function muatDaftarSesi() {
 
 async function buatSesi(e) {
   e.preventDefault();
+  var kodeCustom = $("ruang-kode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  var kode = kodeCustom ? "TC-" + kodeCustom : buatKode();
+
+  // Cegah kode kembar
+  var sudahAda = [];
+  try { sudahAda = await Simpan().semuaSesi(); } catch (err) {}
+  if (sudahAda.some(function (x) { return x.kode === kode; })) {
+    alert("Kode " + kode + " sudah dipakai ruangan lain. Gunakan kode khusus yang berbeda.");
+    return;
+  }
+
   var sesi = {
     id: "s" + Date.now(),
     judul: $("sesi-judul").value.trim(),
-    tanggal: $("sesi-tanggal").value,
-    jam: $("sesi-jam").value,
-    kode: buatKode(),
+    kode: kode,
     pembuatEmail: pengguna.email,
     pembuatNama: pengguna.nama
   };
@@ -287,11 +304,26 @@ async function buatSesi(e) {
     await Simpan().tambahSesi(sesi);
     e.target.reset();
     muatDaftarSesi();
-    alert("Sesi dibuat!\n\nKode ruang: " + sesi.kode +
-      "\nLink undangan: " + location.origin + location.pathname + "?kode=" + sesi.kode +
-      "\n\nKirim link itu ke peserta lewat WA — mereka tinggal klik, masuk/daftar, lalu otomatis masuk ruang. (Atau cukup bagikan kodenya saja.)");
+    alert("Ruangan dibuat!\n\n" + sesi.judul +
+      "\nKode: " + sesi.kode +
+      "\nLink: " + location.origin + location.pathname + "?kode=" + sesi.kode +
+      "\n\nKlik \"Salin Undangan\" di daftar ruangan, lalu kirim ke pelatih & peserta cabang tersebut lewat WA.");
   } catch (err) {
-    alert("Gagal membuat sesi: " + err.message);
+    alert("Gagal membuat ruangan: " + err.message);
+  }
+}
+
+function salinUndangan(kode, judul) {
+  var link = location.origin + location.pathname + "?kode=" + kode;
+  var teks = "Undangan " + (judul || "Sesi TC Tilawah") + " — LPTQ NTB TC Online\n" +
+    "Kode ruangan: " + kode + "\n" +
+    "Klik untuk gabung: " + link + "\n" +
+    "(Masuk/daftar dulu, setelah itu otomatis masuk ruangan)";
+  function beres() { alert("Undangan \"" + (judul || kode) + "\" disalin!\nTempel & kirim lewat WA ke pelatih dan peserta cabang tersebut."); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin undangan ini:", teks); });
+  } else {
+    prompt("Salin undangan ini:", teks);
   }
 }
 
@@ -309,12 +341,13 @@ var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
 
 function mulaiMeeting(kode, judul) {
   kodeAktif = kode;
-  var adalahHost = pengguna.peran === "pelatih";
+  var adalahHost = pengguna.peran === "pelatih" || pengguna.peran === "admin";
 
   $("meeting-judul").textContent = judul || "Sesi TC";
   $("meeting-kode").textContent = "Kode ruang: " + kode;
   var badge = $("meeting-peran");
-  badge.textContent = adalahHost ? "🎓 HOST — Pelatih" : "🧕 Peserta TC";
+  badge.textContent = pengguna.peran === "admin" ? "🛡️ ADMIN — Pengelola"
+    : (adalahHost ? "🎓 HOST — Pelatih" : "🧕 Peserta TC");
   badge.className = "badge-peran " + (adalahHost ? "host" : "peserta");
   tampilLayar("layar-meeting");
 
@@ -336,7 +369,7 @@ function mulaiMeeting(kode, judul) {
     roomName: namaRuang,
     parentNode: $("wadah-jitsi"),
     lang: "id",
-    userInfo: { displayName: pengguna.nama + (adalahHost ? " 🎓 (Pelatih/Host)" : " (Peserta)"), email: pengguna.email },
+    userInfo: { displayName: pengguna.nama + (pengguna.peran === "admin" ? " 🛡️ (Admin)" : adalahHost ? " 🎓 (Pelatih/Host)" : " (Peserta)"), email: pengguna.email },
     configOverwrite: {
       prejoinConfig: { enabled: true },
       startWithAudioMuted: !adalahHost,   // peserta masuk dengan mic senyap
@@ -360,14 +393,7 @@ function tinggalkanMeeting() {
 }
 
 function salinKode() {
-  var link = location.origin + location.pathname + "?kode=" + kodeAktif;
-  var teks = "Undangan Sesi TC Tilawah — LPTQ NTB\nKode ruang: " + kodeAktif + "\nKlik untuk gabung: " + link;
-  function beres() { alert("Link undangan disalin!\n\nTempel & kirim ke peserta lewat WA.\nPeserta tinggal klik link, masuk/daftar, lalu otomatis masuk ruang."); }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin undangan ini:", teks); });
-  } else {
-    prompt("Salin undangan ini:", teks);
-  }
+  salinUndangan(kodeAktif, $("meeting-judul").textContent);
 }
 
 /* ---------------- MULAI ---------------- */

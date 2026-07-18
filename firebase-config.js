@@ -27,3 +27,6 @@ window.FIREBASE_CONFIG = null;
 
 // Kode rahasia untuk mendaftar sebagai PELATIH (ubah sesuka Anda):
 window.KODE_PELATIH = "TILAWAH2026";
+
+// Kode rahasia untuk mendaftar sebagai ADMIN (pembuat ruangan TC):
+window.KODE_ADMIN = "ADMINLPTQ2026";
