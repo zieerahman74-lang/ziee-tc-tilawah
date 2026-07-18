@@ -232,6 +232,12 @@ function bukaDasbor() {
   }
 }
 
+function ruanganBawaan() {
+  return (window.RUANGAN_BAWAAN || []).map(function (r, i) {
+    return { id: "bawaan-" + i, judul: r.judul, kode: r.kode, pembuatNama: "Admin LPTQ NTB", bawaan: true };
+  });
+}
+
 async function muatDaftarSesi() {
   var wadah = $("daftar-sesi");
   wadah.innerHTML = '<p class="ket">Memuat…</p>';
@@ -240,6 +246,7 @@ async function muatDaftarSesi() {
     wadah.innerHTML = '<p class="ket">Gagal memuat jadwal: ' + e.message + "</p>";
     return;
   }
+  sesi = ruanganBawaan().concat(sesi);
   sesi.sort(function (a, b) { return (a.judul || "").localeCompare(b.judul || ""); });
 
   if (!sesi.length) {
@@ -254,7 +261,7 @@ async function muatDaftarSesi() {
   sesi.forEach(function (s) {
     var div = document.createElement("div");
     div.className = "item-sesi";
-    var adminKah = pengguna.peran === "admin";
+    var adminKah = pengguna.peran === "admin" && !s.bawaan; // ruangan bawaan tidak bisa dihapus
     div.innerHTML =
       '<div class="info">' +
         '<div class="judul"></div>' +
@@ -285,9 +292,9 @@ async function buatSesi(e) {
   var kodeCustom = $("ruang-kode").value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
   var kode = kodeCustom ? "TC-" + kodeCustom : buatKode();
 
-  // Cegah kode kembar
-  var sudahAda = [];
-  try { sudahAda = await Simpan().semuaSesi(); } catch (err) {}
+  // Cegah kode kembar (termasuk 13 ruangan bawaan)
+  var sudahAda = ruanganBawaan();
+  try { sudahAda = sudahAda.concat(await Simpan().semuaSesi()); } catch (err) {}
   if (sudahAda.some(function (x) { return x.kode === kode; })) {
     alert("Kode " + kode + " sudah dipakai ruangan lain. Gunakan kode khusus yang berbeda.");
     return;
