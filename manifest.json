@@ -1,7 +1,7 @@
 {
-  "name": "Ziee TC Tilawah",
-  "short_name": "TC Tilawah",
-  "description": "Pelatihan Tilawah Online — Pelatih & Peserta",
+  "name": "LPTQ NTB TC Online",
+  "short_name": "LPTQ NTB TC",
+  "description": "Pelatihan Tilawah Online LPTQ NTB — Pelatih (Host) & Peserta TC",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f766e",

@@ -1,8 +1,9 @@
 /* ============================================================
-   Ziee TC Tilawah — Pelatihan Tilawah Online (mirip Zoom)
+   LPTQ NTB TC Online — Pelatihan Tilawah Online (mirip Zoom)
    - Login email + nama + sandi (Firebase, atau Mode Lokal)
-   - Pelatih membuat sesi TC, peserta gabung dengan kode
+   - Pelatih (Host) membuat sesi TC, peserta gabung dengan kode
    - Video call gratis via Jitsi Meet (tanpa batas waktu)
+   - Host & peserta dibedakan: toolbar, mic awal, dan tanda peran
    ============================================================ */
 
 var MODE_FIREBASE = !!window.FIREBASE_CONFIG;
@@ -212,7 +213,7 @@ async function keluar() {
 /* ---------------- DASBOR ---------------- */
 function bukaDasbor() {
   $("dasbor-nama").textContent = pengguna.nama;
-  $("dasbor-peran").textContent = pengguna.peran === "pelatih" ? "🎓 Pelatih" : "🧕 Peserta TC";
+  $("dasbor-peran").textContent = pengguna.peran === "pelatih" ? "🎓 Pelatih (Host)" : "🧕 Peserta TC";
   $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "pelatih");
   tampilLayar("layar-dasbor");
   muatDaftarSesi();
@@ -297,21 +298,40 @@ var kodeAktif = "";
 
 function mulaiMeeting(kode, judul) {
   kodeAktif = kode;
+  var adalahHost = pengguna.peran === "pelatih";
+
   $("meeting-judul").textContent = judul || "Sesi TC";
   $("meeting-kode").textContent = "Kode ruang: " + kode;
+  var badge = $("meeting-peran");
+  badge.textContent = adalahHost ? "🎓 HOST — Pelatih" : "🧕 Peserta TC";
+  badge.className = "badge-peran " + (adalahHost ? "host" : "peserta");
   tampilLayar("layar-meeting");
 
-  var namaRuang = "ZieeTCTilawah-" + kode.replace(/[^A-Za-z0-9]/g, "");
+  // Host (pelatih) mendapat toolbar lengkap moderator;
+  // peserta hanya tombol dasar agar sesi tetap tertib.
+  var tombolHost = [
+    "microphone", "camera", "desktop", "chat", "raisehand",
+    "participants-pane", "tileview", "toggle-camera", "settings",
+    "mute-everyone", "mute-video-everyone", "recording",
+    "security", "invite", "fullscreen", "hangup"
+  ];
+  var tombolPeserta = [
+    "microphone", "camera", "chat", "raisehand",
+    "tileview", "toggle-camera", "settings", "fullscreen", "hangup"
+  ];
+
+  var namaRuang = "LPTQNTBTC-" + kode.replace(/[^A-Za-z0-9]/g, "");
   jitsiApi = new JitsiMeetExternalAPI("meet.jit.si", {
     roomName: namaRuang,
     parentNode: $("wadah-jitsi"),
     lang: "id",
-    userInfo: { displayName: pengguna.nama + (pengguna.peran === "pelatih" ? " (Pelatih)" : ""), email: pengguna.email },
+    userInfo: { displayName: pengguna.nama + (adalahHost ? " 🎓 (Pelatih/Host)" : " (Peserta)"), email: pengguna.email },
     configOverwrite: {
       prejoinConfig: { enabled: true },
-      startWithAudioMuted: pengguna.peran !== "pelatih",
+      startWithAudioMuted: !adalahHost,   // peserta masuk dengan mic senyap
       disableDeepLinking: true,
-      subject: judul || "Sesi TC Tilawah"
+      subject: (judul || "Sesi TC Tilawah") + " — LPTQ NTB",
+      toolbarButtons: adalahHost ? tombolHost : tombolPeserta
     },
     interfaceConfigOverwrite: {
       SHOW_JITSI_WATERMARK: false,

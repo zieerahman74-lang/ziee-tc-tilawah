@@ -1,6 +1,6 @@
-# 🕌 Ziee TC Tilawah — Pelatihan Tilawah Online
+# 🕌 LPTQ NTB TC Online — Pelatihan Tilawah
 
-Aplikasi web (mirip Zoom) khusus untuk **Training Center (TC) Tilawah online**: ada **Pelatih** dan **Peserta**. Bisa dibuka di **HP maupun laptop** lewat browser, **gratis**, tanpa perlu install dari Play Store.
+Aplikasi web (mirip Zoom) khusus untuk **Training Center (TC) Tilawah online LPTQ NTB**: ada **Pelatih (Host)** dan **Peserta TC** dengan tampilan & kontrol yang dibedakan. Bisa dibuka di **HP maupun laptop** lewat browser, **gratis**, tanpa perlu install dari Play Store.
 
 ## ✨ Fitur
 - Login / daftar dengan **email + nama + sandi** (Mode Lokal; opsional Firebase agar tersinkron antar-perangkat)

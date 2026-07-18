@@ -171,6 +171,16 @@ input:focus { outline: none; border-color: var(--hijau); }
 /* ====== Meeting ====== */
 #layar-meeting.aktif { height: 100dvh; }
 .meeting-atas { flex-shrink: 0; }
+
+.badge-peran {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge-peran.host { background: #fef3c7; color: #92400e; border: 1.5px solid var(--emas); }
+.badge-peran.peserta { background: var(--hijau-muda); color: var(--hijau-tua); border: 1.5px solid var(--hijau); }
 #wadah-jitsi { flex: 1; background: #111; }
 #wadah-jitsi iframe { width: 100%; height: 100%; border: 0; }
 
