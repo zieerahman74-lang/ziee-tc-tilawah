@@ -217,6 +217,14 @@ function bukaDasbor() {
   $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "pelatih");
   tampilLayar("layar-dasbor");
   muatDaftarSesi();
+
+  // Datang lewat link undangan? Langsung masukkan ke ruang sesi.
+  if (kodeUndangan) {
+    var k = kodeUndangan;
+    kodeUndangan = null;
+    history.replaceState(null, "", location.pathname);
+    mulaiMeeting(k, "Sesi TC Tilawah");
+  }
 }
 
 async function muatDaftarSesi() {
@@ -279,7 +287,9 @@ async function buatSesi(e) {
     await Simpan().tambahSesi(sesi);
     e.target.reset();
     muatDaftarSesi();
-    alert("Sesi dibuat!\n\nKode ruang: " + sesi.kode + "\n\nBagikan kode ini ke peserta (WA/SMS). Peserta cukup masukkan kode di menu \"Gabung Sesi TC\".");
+    alert("Sesi dibuat!\n\nKode ruang: " + sesi.kode +
+      "\nLink undangan: " + location.origin + location.pathname + "?kode=" + sesi.kode +
+      "\n\nKirim link itu ke peserta lewat WA — mereka tinggal klik, masuk/daftar, lalu otomatis masuk ruang. (Atau cukup bagikan kodenya saja.)");
   } catch (err) {
     alert("Gagal membuat sesi: " + err.message);
   }
@@ -295,6 +305,7 @@ function gabungDenganKode(e) {
 
 /* ---------------- MEETING (JITSI) ---------------- */
 var kodeAktif = "";
+var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
 
 function mulaiMeeting(kode, judul) {
   kodeAktif = kode;
@@ -349,12 +360,13 @@ function tinggalkanMeeting() {
 }
 
 function salinKode() {
-  var teks = kodeAktif;
-  function beres() { alert("Kode ruang disalin: " + teks + "\nTempel & kirim ke peserta lewat WA."); }
+  var link = location.origin + location.pathname + "?kode=" + kodeAktif;
+  var teks = "Undangan Sesi TC Tilawah — LPTQ NTB\nKode ruang: " + kodeAktif + "\nKlik untuk gabung: " + link;
+  function beres() { alert("Link undangan disalin!\n\nTempel & kirim ke peserta lewat WA.\nPeserta tinggal klik link, masuk/daftar, lalu otomatis masuk ruang."); }
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin kode ruang ini:", teks); });
+    navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin undangan ini:", teks); });
   } else {
-    prompt("Salin kode ruang ini:", teks);
+    prompt("Salin undangan ini:", teks);
   }
 }
 
@@ -372,11 +384,21 @@ function salinKode() {
     }
   }
 
+  // Link undangan: https://.../?kode=TC-XXXXXX
+  var paramKode = new URLSearchParams(location.search).get("kode");
+  if (paramKode) {
+    kodeUndangan = paramKode.trim().toUpperCase();
+    if (kodeUndangan.indexOf("TC-") !== 0) kodeUndangan = "TC-" + kodeUndangan;
+  }
+
   var tersimpan = sessionStorage.getItem("ztc_login");
   if (tersimpan) {
     pengguna = JSON.parse(tersimpan);
     bukaDasbor();
   } else {
     tampilLayar("layar-auth");
+    if (kodeUndangan) {
+      pesanAuth("Anda diundang ke sesi " + kodeUndangan + ". Silakan Masuk atau Daftar dulu — setelah itu otomatis masuk ruang.", true);
+    }
   }
 })();
