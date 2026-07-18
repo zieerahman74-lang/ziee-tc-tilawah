@@ -49,17 +49,17 @@ window.JITSI_SERVER = "meet.ffmuc.net";
 // yang menjadi alamat ruangan — jangan ada yang kembar.
 // ============================================================
 window.RUANGAN_BAWAAN = [
-  { judul: "TC Cabang 01", kode: "TC-CABANG01" },
-  { judul: "TC Cabang 02", kode: "TC-CABANG02" },
-  { judul: "TC Cabang 03", kode: "TC-CABANG03" },
-  { judul: "TC Cabang 04", kode: "TC-CABANG04" },
-  { judul: "TC Cabang 05", kode: "TC-CABANG05" },
-  { judul: "TC Cabang 06", kode: "TC-CABANG06" },
-  { judul: "TC Cabang 07", kode: "TC-CABANG07" },
-  { judul: "TC Cabang 08", kode: "TC-CABANG08" },
-  { judul: "TC Cabang 09", kode: "TC-CABANG09" },
-  { judul: "TC Cabang 10", kode: "TC-CABANG10" },
-  { judul: "TC Cabang 11", kode: "TC-CABANG11" },
-  { judul: "TC Cabang 12", kode: "TC-CABANG12" },
-  { judul: "TC Cabang 13", kode: "TC-CABANG13" }
+  { judul: "TC Tilawah Al-Qur'an",        kode: "TC-TILAWAH" },
+  { judul: "TC Tartil / Murottal",        kode: "TC-MUROTTAL" },
+  { judul: "TC Tahfidz 1 Juz",            kode: "TC-TAHFIDZ1" },
+  { judul: "TC Tahfidz 5 Juz",            kode: "TC-TAHFIDZ5" },
+  { judul: "TC Tahfidz 10 Juz",           kode: "TC-TAHFIDZ10" },
+  { judul: "TC Tahfidz 20 Juz",           kode: "TC-TAHFIDZ20" },
+  { judul: "TC Tahfidz 30 Juz",           kode: "TC-TAHFIDZ30" },
+  { judul: "TC Qira'at Sab'ah",           kode: "TC-QIRAAT" },
+  { judul: "TC Tafsir Al-Qur'an",         kode: "TC-TAFSIR" },
+  { judul: "TC Fahmil Qur'an",            kode: "TC-FAHMIL" },
+  { judul: "TC Syarhil Qur'an",           kode: "TC-SYARHIL" },
+  { judul: "TC Khattil Qur'an (Kaligrafi)", kode: "TC-KHAT" },
+  { judul: "TC Karya Tulis Ilmiah Al-Qur'an", kode: "TC-KTIQ" }
 ];
