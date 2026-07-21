@@ -408,7 +408,13 @@ function siapkanJitsi(paksaUlang) {
 
 function bukaDiTabBaru() {
   if (!kodeAktif) return;
-  window.open("https://" + serverAktif + "/" + namaRuangDari(kodeAktif), "_blank", "noopener");
+  // Sertakan bahasa & nama agar tampilan tetap Indonesia (tanpa ini
+  // Jitsi bisa memilih bahasa lain, mis. Arab) dan peran tetap jelas.
+  var adalahHost = pengguna && (pengguna.peran === "pelatih" || pengguna.peran === "admin");
+  var nama = pengguna ? pengguna.nama + (pengguna.peran === "admin" ? " (Admin)" : adalahHost ? " (Pelatih/Host)" : " (Peserta)") : "";
+  var url = "https://" + serverAktif + "/" + namaRuangDari(kodeAktif) + "?lang=id" +
+    (nama ? "#userInfo.displayName=%22" + encodeURIComponent(nama) + "%22" : "");
+  window.open(url, "_blank", "noopener");
 }
 
 function namaRuangDari(kode) {
