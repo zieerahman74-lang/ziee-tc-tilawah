@@ -32,14 +32,24 @@ window.KODE_PELATIH = "TILAWAH2026";
 window.KODE_ADMIN = "ADMINLPTQ2026";
 
 // ============================================================
-// SERVER VIDEO (Jitsi Meet)
+// SERVER VIDEO (Jitsi Meet) — TANPA BATAS WAKTU
 // ------------------------------------------------------------
-// "meet.jit.si" resmi tapi MEMBATASI 5 MENIT tanpa login Google.
-// Pakai server publik gratis tanpa batas waktu, mis.:
-//   "meet.ffmuc.net"  (Freifunk Muenchen, Jerman — stabil & bebas)
-// Bila server penuh/bermasalah, cukup ganti nilai di bawah ini.
+// CATATAN: "meet.jit.si" (server resmi) MEMUTUS rapat setelah
+// 5 menit bila tidak ada moderator yang login akun Google.
+// Karena itu kita pakai server komunitas yang benar-benar bebas.
+//
+// Server pertama = utama. Sisanya cadangan otomatis bila yang
+// utama sedang mati/tak bisa dijangkau.
+//
+// PENTING: semua peserta harus berada di SERVER YANG SAMA agar
+// bisa saling bertemu. Karena itu server ikut ditulis di link
+// undangan (&srv=...), jadi peserta otomatis mengikuti host.
 // ============================================================
-window.JITSI_SERVER = "meet.ffmuc.net";
+window.JITSI_SERVERS = [
+  "meet.ffmuc.net",     // Freifunk München (Jerman) — utama, stabil
+  "framatalk.org",      // Framasoft (Prancis) — cadangan 1
+  "meet.mayfirst.org"   // May First (AS) — cadangan 2
+];
 
 // ============================================================
 // 13 RUANGAN TC TETAP (tampil otomatis di SEMUA perangkat)

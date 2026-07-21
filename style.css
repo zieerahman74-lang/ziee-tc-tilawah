@@ -182,7 +182,27 @@ input:focus { outline: none; border-color: var(--hijau); }
 }
 .badge-peran.host { background: #fef3c7; color: #92400e; border: 1.5px solid var(--emas); }
 .badge-peran.peserta { background: var(--hijau-muda); color: var(--hijau-tua); border: 1.5px solid var(--hijau); }
-#wadah-jitsi { flex: 1; background: #111; }
+
+/* Area video + lapisan status (memuat / gagal / diblokir) */
+#area-video { position: relative; flex: 1; min-height: 0; }
+#area-video #wadah-jitsi { position: absolute; inset: 0; }
+
+.status-video {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--hijau-tua); color: #fff;
+  padding: 24px; text-align: center; z-index: 5;
+}
+.status-isi { max-width: 460px; }
+.status-ikon { font-size: 46px; margin-bottom: 10px; }
+.status-video h3 { margin: 0 0 8px; font-size: 19px; }
+.status-video .ket { color: #d1fae5; line-height: 1.55; }
+.status-aksi {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  justify-content: center; margin: 18px 0 12px;
+}
+.ket.kecil { font-size: 12px; opacity: .75; margin-top: 6px; }
+#wadah-jitsi { background: #111; }
 #wadah-jitsi iframe { width: 100%; height: 100%; border: 0; }
 
 @media (max-width: 480px) {

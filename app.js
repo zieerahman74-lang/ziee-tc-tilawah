@@ -313,15 +313,23 @@ async function buatSesi(e) {
     muatDaftarSesi();
     alert("Ruangan dibuat!\n\n" + sesi.judul +
       "\nKode: " + sesi.kode +
-      "\nLink: " + location.origin + location.pathname + "?kode=" + sesi.kode +
+      "\nLink: " + linkUndangan(sesi.kode) +
       "\n\nKlik \"Salin Undangan\" di daftar ruangan, lalu kirim ke pelatih & peserta cabang tersebut lewat WA.");
   } catch (err) {
     alert("Gagal membuat ruangan: " + err.message);
   }
 }
 
-function salinUndangan(kode, judul) {
+function linkUndangan(kode) {
   var link = location.origin + location.pathname + "?kode=" + kode;
+  // Server ikut dibawa bila bukan server utama, supaya peserta tidak
+  // tersebar di server berbeda dan tetap bisa saling bertemu.
+  if (serverAktif !== DAFTAR_SERVER[0]) link += "&srv=" + encodeURIComponent(serverAktif);
+  return link;
+}
+
+function salinUndangan(kode, judul) {
+  var link = linkUndangan(kode);
   var teks = "Undangan " + (judul || "Sesi TC Tilawah") + " — LPTQ NTB TC Online\n" +
     "Kode ruangan: " + kode + "\n" +
     "Klik untuk gabung: " + link + "\n" +
@@ -346,27 +354,91 @@ function gabungDenganKode(e) {
 var kodeAktif = "";
 var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
 
-// Server Jitsi bebas-batas-waktu (bisa diganti di firebase-config.js)
-var JITSI_SERVER = window.JITSI_SERVER || "meet.ffmuc.net";
-var jitsiSiap = null; // promise pemuatan external_api.js
+/* --- Server video: daftar + cadangan otomatis ---
+   Semua peserta WAJIB di server yang sama agar bertemu, jadi server
+   ikut dibawa di link undangan (&srv=...). */
+var DAFTAR_SERVER = (window.JITSI_SERVERS && window.JITSI_SERVERS.length)
+  ? window.JITSI_SERVERS.slice()
+  : [window.JITSI_SERVER || "meet.ffmuc.net"];
+var serverAktif = DAFTAR_SERVER[0];
+var jitsiSiap = null;      // promise pemuatan external_api.js
+var judulAktif = "";
+var pantauMasuk = null;    // timer deteksi video gagal tampil
 
-function siapkanJitsi() {
-  if (!jitsiSiap) {
-    jitsiSiap = (typeof JitsiMeetExternalAPI !== "undefined")
-      ? Promise.resolve()
-      : muatSkrip("https://" + JITSI_SERVER + "/external_api.js");
+function statusVideo(ikon, judul, pesan, tampilAksi) {
+  var kotak = $("status-video");
+  if (!judul) { kotak.classList.add("tersembunyi"); return; }
+  $("status-ikon").textContent = ikon;
+  $("status-judul").textContent = judul;
+  $("status-pesan").textContent = pesan || "";
+  $("status-aksi").classList.toggle("tersembunyi", !tampilAksi);
+  $("status-server").textContent = "Server video: " + serverAktif;
+  kotak.classList.remove("tersembunyi");
+}
+
+// Muat external_api.js; bila server utama gagal, coba cadangan berikutnya.
+function siapkanJitsi(paksaUlang) {
+  if (paksaUlang) { jitsiSiap = null; delete window.JitsiMeetExternalAPI; }
+  if (jitsiSiap) return jitsiSiap;
+
+  if (typeof JitsiMeetExternalAPI !== "undefined") {
+    jitsiSiap = Promise.resolve();
+    return jitsiSiap;
   }
+
+  var mulai = DAFTAR_SERVER.indexOf(serverAktif);
+  if (mulai < 0) mulai = 0;
+
+  jitsiSiap = (async function () {
+    var urutan = DAFTAR_SERVER.slice(mulai).concat(DAFTAR_SERVER.slice(0, mulai));
+    var galatTerakhir = null;
+    for (var i = 0; i < urutan.length; i++) {
+      try {
+        await muatSkrip("https://" + urutan[i] + "/external_api.js");
+        serverAktif = urutan[i];
+        return;
+      } catch (e) { galatTerakhir = e; }
+    }
+    throw galatTerakhir || new Error("semua server gagal");
+  })();
+
+  jitsiSiap.catch(function () { jitsiSiap = null; });
   return jitsiSiap;
+}
+
+function bukaDiTabBaru() {
+  if (!kodeAktif) return;
+  window.open("https://" + serverAktif + "/" + namaRuangDari(kodeAktif), "_blank", "noopener");
+}
+
+function namaRuangDari(kode) {
+  return "LPTQNTBTC-" + kode.replace(/[^A-Za-z0-9]/g, "");
+}
+
+async function cobaServerLain() {
+  var i = DAFTAR_SERVER.indexOf(serverAktif);
+  serverAktif = DAFTAR_SERVER[(i + 1) % DAFTAR_SERVER.length];
+  if (jitsiApi) { try { jitsiApi.dispose(); } catch (e) {} jitsiApi = null; }
+  $("wadah-jitsi").innerHTML = "";
+  statusVideo("🔄", "Pindah ke " + serverAktif + "…", "Menyiapkan ulang ruang video.", false);
+  await siapkanJitsi(true);
+  mulaiMeeting(kodeAktif, judulAktif);
+  alert("Server video diganti ke " + serverAktif + ".\n\nPENTING: bagikan ULANG link undangan (tombol \"Bagikan Undangan\") agar peserta lain ikut pindah ke server ini. Peserta di server lama tidak akan terlihat.");
 }
 
 async function mulaiMeeting(kode, judul) {
   kodeAktif = kode;
+  judulAktif = judul || "Sesi TC";
   var adalahHost = pengguna.peran === "pelatih" || pengguna.peran === "admin";
+
+  tampilLayar("layar-meeting");
+  statusVideo("🎥", "Menyiapkan ruang video…", "Menghubungkan ke server " + serverAktif + ".", false);
 
   try {
     await siapkanJitsi();
   } catch (e) {
-    alert("Gagal memuat mesin video dari " + JITSI_SERVER + ".\nPeriksa koneksi internet lalu coba lagi.");
+    statusVideo("⚠️", "Tidak bisa memuat mesin video",
+      "Semua server video gagal dihubungi. Biasanya karena koneksi internet, atau pemblokir iklan/perisai browser yang memblokir situs video. Matikan pemblokir untuk situs ini, lalu muat ulang halaman.", true);
     return;
   }
 
@@ -376,7 +448,6 @@ async function mulaiMeeting(kode, judul) {
   badge.textContent = pengguna.peran === "admin" ? "🛡️ ADMIN — Pengelola"
     : (adalahHost ? "🎓 HOST — Pelatih" : "🧕 Peserta TC");
   badge.className = "badge-peran " + (adalahHost ? "host" : "peserta");
-  tampilLayar("layar-meeting");
 
   // Host (pelatih) mendapat toolbar lengkap moderator;
   // peserta hanya tombol dasar agar sesi tetap tertib.
@@ -391,29 +462,58 @@ async function mulaiMeeting(kode, judul) {
     "tileview", "toggle-camera", "settings", "fullscreen", "hangup"
   ];
 
-  var namaRuang = "LPTQNTBTC-" + kode.replace(/[^A-Za-z0-9]/g, "");
-  jitsiApi = new JitsiMeetExternalAPI(JITSI_SERVER, {
-    roomName: namaRuang,
-    parentNode: $("wadah-jitsi"),
-    lang: "id",
-    userInfo: { displayName: pengguna.nama + (pengguna.peran === "admin" ? " 🛡️ (Admin)" : adalahHost ? " 🎓 (Pelatih/Host)" : " (Peserta)"), email: pengguna.email },
-    configOverwrite: {
-      prejoinConfig: { enabled: true },
-      startWithAudioMuted: !adalahHost,   // peserta masuk dengan mic senyap
-      disableDeepLinking: true,
-      subject: (judul || "Sesi TC Tilawah") + " — LPTQ NTB",
-      toolbarButtons: adalahHost ? tombolHost : tombolPeserta
-    },
-    interfaceConfigOverwrite: {
-      SHOW_JITSI_WATERMARK: false,
-      MOBILE_APP_PROMO: false
-    }
-  });
+  try {
+    jitsiApi = new JitsiMeetExternalAPI(serverAktif, {
+      roomName: namaRuangDari(kode),
+      parentNode: $("wadah-jitsi"),
+      lang: "id",
+      userInfo: { displayName: pengguna.nama + (pengguna.peran === "admin" ? " 🛡️ (Admin)" : adalahHost ? " 🎓 (Pelatih/Host)" : " (Peserta)"), email: pengguna.email },
+      configOverwrite: {
+        prejoinConfig: { enabled: true },
+        startWithAudioMuted: !adalahHost,   // peserta masuk dengan mic senyap
+        disableDeepLinking: true,
+        subject: (judul || "Sesi TC Tilawah") + " — LPTQ NTB",
+        toolbarButtons: adalahHost ? tombolHost : tombolPeserta
+      },
+      interfaceConfigOverwrite: {
+        SHOW_JITSI_WATERMARK: false,
+        MOBILE_APP_PROMO: false
+      }
+    });
+  } catch (e) {
+    statusVideo("⚠️", "Ruang video gagal dibuka", "Coba server lain, atau buka ruang di tab baru.", true);
+    return;
+  }
+
+  // Sembunyikan status begitu tampilan Jitsi benar-benar muncul.
+  var sudahTampil = false;
+  function videoTampil() {
+    if (sudahTampil) return;
+    sudahTampil = true;
+    clearTimeout(pantauMasuk);
+    statusVideo(null);
+  }
+  jitsiApi.addListener("videoConferenceJoined", videoTampil);
+  jitsiApi.addListener("browserSupport", videoTampil);
+  try {
+    var bingkai = jitsiApi.getIFrame();
+    if (bingkai) bingkai.addEventListener("load", videoTampil);
+  } catch (e) {}
+
+  // Bila 15 detik tidak ada tanda kehidupan → beri jalan keluar.
+  clearTimeout(pantauMasuk);
+  pantauMasuk = setTimeout(function () {
+    if (sudahTampil) return;
+    statusVideo("🛡️", "Ruang video belum tampil",
+      "Kemungkinan besar diblokir oleh pemblokir iklan / perisai browser. Matikan perisai untuk situs ini lalu muat ulang, atau gunakan dua tombol di bawah.", true);
+  }, 15000);
 
   jitsiApi.addListener("readyToClose", tinggalkanMeeting);
 }
 
 function tinggalkanMeeting() {
+  clearTimeout(pantauMasuk);
+  statusVideo(null);
   if (jitsiApi) { try { jitsiApi.dispose(); } catch (e) {} jitsiApi = null; }
   $("wadah-jitsi").innerHTML = "";
   bukaDasbor();
@@ -437,11 +537,20 @@ function salinKode() {
     }
   }
 
-  // Muat mesin video lebih awal supaya masuk ruang terasa cepat
-  siapkanJitsi().catch(function () { jitsiSiap = null; });
+  // Link undangan: https://.../?kode=TC-XXXXXX&srv=server
+  var param = new URLSearchParams(location.search);
 
-  // Link undangan: https://.../?kode=TC-XXXXXX
-  var paramKode = new URLSearchParams(location.search).get("kode");
+  // Ikuti server yang dipakai host (dari link undangan)
+  var paramSrv = param.get("srv");
+  if (paramSrv) {
+    serverAktif = paramSrv;
+    if (DAFTAR_SERVER.indexOf(paramSrv) < 0) DAFTAR_SERVER.unshift(paramSrv);
+  }
+
+  // Muat mesin video lebih awal supaya masuk ruang terasa cepat
+  siapkanJitsi().catch(function () {});
+
+  var paramKode = param.get("kode");
   if (paramKode) {
     kodeUndangan = paramKode.trim().toUpperCase();
     if (kodeUndangan.indexOf("TC-") !== 0) kodeUndangan = "TC-" + kodeUndangan;

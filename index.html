@@ -135,11 +135,26 @@
       <span id="meeting-peran" class="badge-peran">—</span>
     </div>
     <div class="atas-kanan">
+      <button class="tombol kecil abu" onclick="bukaDiTabBaru()" title="Buka ruang video di tab terpisah">Buka di Tab Baru</button>
       <button class="tombol kecil abu" onclick="salinKode()">Bagikan Undangan</button>
       <button class="tombol kecil merah" onclick="tinggalkanMeeting()">Keluar Sesi</button>
     </div>
   </header>
-  <div id="wadah-jitsi"></div>
+  <div id="area-video">
+    <div id="wadah-jitsi"></div>
+    <div id="status-video" class="status-video tersembunyi">
+      <div class="status-isi">
+        <div id="status-ikon" class="status-ikon">🎥</div>
+        <h3 id="status-judul">Menyiapkan ruang video…</h3>
+        <p id="status-pesan" class="ket">Mohon tunggu sebentar.</p>
+        <div id="status-aksi" class="status-aksi tersembunyi">
+          <button class="tombol utama" onclick="bukaDiTabBaru()">Buka Ruang di Tab Baru</button>
+          <button class="tombol abu" onclick="cobaServerLain()">Coba Server Lain</button>
+        </div>
+        <p id="status-server" class="ket kecil"></p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="firebase-config.js"></script>
