@@ -103,6 +103,21 @@
       </form>
     </section>
 
+    <!-- Kelola akun & undangan (khusus ADMIN) -->
+    <section id="bagian-akun" class="kartu tersembunyi">
+      <h2>👥 Undang Pelatih &amp; Peserta (Admin)</h2>
+      <p class="ket">Buat link undangan berperan. Yang diundang cukup klik link, isi nama &amp; sandi sendiri — perannya otomatis, tanpa perlu kode rahasia.</p>
+      <div class="baris-tombol">
+        <button class="tombol utama" onclick="undangPeran('pelatih')">🎓 Link Undangan Pelatih</button>
+        <button class="tombol utama" onclick="undangPeran('peserta')">🧕 Link Undangan Peserta</button>
+      </div>
+
+      <h3 class="sub-judul">Akun di perangkat ini</h3>
+      <div id="daftar-akun" class="daftar-akun"><p class="ket">Memuat…</p></div>
+      <button class="tombol merah" onclick="resetSemuaAkun()">🗑️ Hapus Semua Akun — Mulai dari Nol</button>
+      <p class="ket kecil-gelap">Menghapus semua akun di perangkat ini (termasuk akun Anda), lalu kembali ke layar daftar. Ruangan TC tidak ikut terhapus.</p>
+    </section>
+
     <!-- Daftar ruangan -->
     <section class="kartu">
       <h2>Daftar Ruangan TC</h2>

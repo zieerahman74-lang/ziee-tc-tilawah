@@ -80,6 +80,19 @@ var Lokal = {
   },
   keluar: async function () {},
 
+  semuaUsers: function () {
+    var users = Lokal.ambilUsers();
+    return Object.keys(users).map(function (email) {
+      return { email: email, nama: users[email].nama, peran: users[email].peran };
+    });
+  },
+  hapusUser: function (email) {
+    var users = Lokal.ambilUsers();
+    delete users[email];
+    Lokal.simpanUsers(users);
+  },
+  hapusSemuaUsers: function () { localStorage.removeItem("ztc_users"); },
+
   tambahSesi: async function (sesi) {
     var s = Lokal.ambilSesi();
     s.push(sesi);
@@ -150,7 +163,9 @@ function pilihTab(mana) {
 
 function gantiPeranDaftar() {
   var p = $("daftar-peran").value;
-  $("wadah-kode-pelatih").classList.toggle("tersembunyi", p === "peserta");
+  // Peran dari link undangan admin tidak perlu kode rahasia.
+  var perluKode = (p !== "peserta") && (p !== peranUndangan);
+  $("wadah-kode-pelatih").classList.toggle("tersembunyi", !perluKode);
   $("label-kode-khusus").textContent = p === "admin" ? "Kode Admin" : "Kode Pelatih";
 }
 
@@ -162,13 +177,18 @@ async function prosesDaftar(e) {
   var peran = $("daftar-peran").value;
   var kodeKhusus = $("daftar-kode-pelatih").value.trim();
 
-  if (peran === "pelatih" && kodeKhusus !== window.KODE_PELATIH) {
-    pesanAuth("Kode Pelatih salah. Minta kode ke admin, atau daftar sebagai peserta.", false);
-    return;
-  }
-  if (peran === "admin" && kodeKhusus !== window.KODE_ADMIN) {
-    pesanAuth("Kode Admin salah.", false);
-    return;
+  // Bila datang dari link undangan admin, peran sudah sah — kode tak perlu.
+  var lewatUndangan = (peranUndangan && peranUndangan === peran);
+
+  if (!lewatUndangan) {
+    if (peran === "pelatih" && kodeKhusus !== window.KODE_PELATIH) {
+      pesanAuth("Kode Pelatih salah. Minta link undangan atau kode ke admin.", false);
+      return;
+    }
+    if (peran === "admin" && kodeKhusus !== window.KODE_ADMIN) {
+      pesanAuth("Kode Admin salah.", false);
+      return;
+    }
   }
 
   try {
@@ -220,8 +240,10 @@ function bukaDasbor() {
   $("dasbor-nama").textContent = pengguna.nama;
   $("dasbor-peran").textContent = labelPeran[pengguna.peran] || "🧕 Peserta TC";
   $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "admin");
+  $("bagian-akun").classList.toggle("tersembunyi", pengguna.peran !== "admin");
   tampilLayar("layar-dasbor");
   muatDaftarSesi();
+  if (pengguna.peran === "admin") muatDaftarAkun();
 
   // Datang lewat link undangan? Langsung masukkan ke ruang sesi.
   if (kodeUndangan) {
@@ -328,6 +350,72 @@ function linkUndangan(kode) {
   return link;
 }
 
+/* ---------------- UNDANGAN BERPERAN & KELOLA AKUN (ADMIN) ---------------- */
+
+// Admin membuat link undangan; penerima cukup isi nama & sandi,
+// perannya sudah ditentukan lewat link (tanpa kode rahasia).
+function undangPeran(peran) {
+  var label = peran === "pelatih" ? "Pelatih (Host)" : "Peserta TC";
+  var link = location.origin + location.pathname + "?undang=" + peran;
+  var teks = "Undangan LPTQ NTB TC Online\n" +
+    "Anda diundang sebagai: " + label + "\n\n" +
+    "1. Klik link ini: " + link + "\n" +
+    "2. Isi nama lengkap, email, dan sandi Anda sendiri\n" +
+    "3. Selesai — Anda langsung masuk sebagai " + label + "\n\n" +
+    "Setelah itu, tunggu link ruangan TC dari admin untuk mulai sesi.";
+
+  function beres() {
+    alert("Link undangan " + label + " sudah disalin!\n\nTempel & kirim lewat WA.\n\nCatatan: siapa pun yang punya link ini bisa mendaftar sebagai " + label + " — kirim hanya ke orang yang berhak.");
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin undangan ini:", teks); });
+  } else {
+    prompt("Salin undangan ini:", teks);
+  }
+}
+
+function muatDaftarAkun() {
+  var wadah = $("daftar-akun");
+  if (!wadah) return;
+  if (MODE_FIREBASE) {
+    wadah.innerHTML = '<p class="ket">Mode Online: akun dikelola di Firebase, tidak bisa dihapus dari sini.</p>';
+    return;
+  }
+  var users = Lokal.semuaUsers();
+  if (!users.length) { wadah.innerHTML = '<p class="ket">Belum ada akun.</p>'; return; }
+
+  var ikon = { admin: "🛡️", pelatih: "🎓", peserta: "🧕" };
+  wadah.innerHTML = "";
+  users.forEach(function (u) {
+    var div = document.createElement("div");
+    div.className = "item-akun";
+    div.innerHTML =
+      '<div class="info"><span class="nama-akun"></span>' +
+      '<span class="detail-akun"></span></div>' +
+      '<button class="tombol kecil merah btn-hapus-akun">Hapus</button>';
+    div.querySelector(".nama-akun").textContent = (ikon[u.peran] || "🧕") + " " + u.nama;
+    div.querySelector(".detail-akun").textContent = u.email + " · " + u.peran;
+    div.querySelector(".btn-hapus-akun").onclick = function () {
+      if (!confirm('Hapus akun "' + u.nama + '" (' + u.email + ')?')) return;
+      Lokal.hapusUser(u.email);
+      if (pengguna && pengguna.email === u.email) { keluar(); return; }
+      muatDaftarAkun();
+    };
+    wadah.appendChild(div);
+  });
+}
+
+function resetSemuaAkun() {
+  if (MODE_FIREBASE) { alert("Mode Online: hapus akun lewat Firebase Console."); return; }
+  if (!confirm("Hapus SEMUA akun di perangkat ini?\n\nTermasuk akun Anda sendiri. Anda akan kembali ke layar daftar dan bisa mulai dari nol.\n\nRuangan TC tidak ikut terhapus.")) return;
+  Lokal.hapusSemuaUsers();
+  sessionStorage.removeItem("ztc_login");
+  pengguna = null;
+  tampilLayar("layar-auth");
+  pilihTab("daftar");
+  pesanAuth("Semua akun terhapus. Silakan daftar akun Admin baru untuk memulai dari nol.", true);
+}
+
 function salinUndangan(kode, judul) {
   var link = linkUndangan(kode);
   var teks = "Undangan " + (judul || "Sesi TC Tilawah") + " — LPTQ NTB TC Online\n" +
@@ -353,6 +441,7 @@ function gabungDenganKode(e) {
 /* ---------------- MEETING (JITSI) ---------------- */
 var kodeAktif = "";
 var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
+var peranUndangan = null;  // peran dari link undangan admin (?undang=pelatih|peserta)
 
 /* --- Server video: daftar + cadangan otomatis ---
    Semua peserta WAJIB di server yang sama agar bertemu, jadi server
@@ -556,6 +645,10 @@ function salinKode() {
   // Muat mesin video lebih awal supaya masuk ruang terasa cepat
   siapkanJitsi().catch(function () {});
 
+  // Undangan berperan dari admin: ?undang=pelatih | ?undang=peserta
+  var paramUndang = (param.get("undang") || "").toLowerCase();
+  if (paramUndang === "pelatih" || paramUndang === "peserta") peranUndangan = paramUndang;
+
   var paramKode = param.get("kode");
   if (paramKode) {
     kodeUndangan = paramKode.trim().toUpperCase();
@@ -568,7 +661,13 @@ function salinKode() {
     bukaDasbor();
   } else {
     tampilLayar("layar-auth");
-    if (kodeUndangan) {
+    if (peranUndangan) {
+      var labelUndang = peranUndangan === "pelatih" ? "Pelatih (Host)" : "Peserta TC";
+      pilihTab("daftar");
+      $("daftar-peran").value = peranUndangan;
+      gantiPeranDaftar();
+      pesanAuth("Anda diundang Admin sebagai " + labelUndang + ". Isi nama, email, dan sandi Anda — tanpa perlu kode.", true);
+    } else if (kodeUndangan) {
       pesanAuth("Anda diundang ke sesi " + kodeUndangan + ". Silakan Masuk atau Daftar dulu — setelah itu otomatis masuk ruang.", true);
     }
   }
