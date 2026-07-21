@@ -42,7 +42,7 @@ body {
   max-width: 420px;
   text-align: center;
 }
-.logo-besar { font-size: 52px; }
+.logo-besar { width: 132px; height: 132px; object-fit: contain; display: block; margin: 0 auto 2px; }
 .auth-kotak h1 { font-size: 26px; color: var(--hijau-tua); margin-top: 6px; }
 .subjudul { color: var(--teks-abu); font-size: 14px; margin: 6px 0 20px; }
 
@@ -121,7 +121,7 @@ input:focus { outline: none; border-color: var(--hijau); }
 }
 .atas-kiri { display: flex; align-items: center; gap: 10px; }
 .atas-kanan { display: flex; gap: 8px; }
-.logo-kecil { font-size: 28px; }
+.logo-kecil { width: 38px; height: 38px; object-fit: contain; flex-shrink: 0; }
 .nama-pengguna { font-weight: 700; font-size: 15px; }
 .peran-pengguna { font-size: 12px; color: var(--teks-abu); }
 
