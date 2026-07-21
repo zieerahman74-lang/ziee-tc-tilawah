@@ -405,6 +405,20 @@ function muatDaftarAkun() {
   });
 }
 
+// Jalan keluar bila lupa sandi: akun Mode Lokal hanya ada di perangkat
+// ini, jadi aman dihapus dari layar masuk tanpa perlu login dulu.
+function resetDariLayarMasuk() {
+  if (MODE_FIREBASE) { alert("Mode Online: reset sandi lewat Firebase."); return; }
+  var jumlah = Lokal.semuaUsers().length;
+  if (!jumlah) { pesanAuth("Belum ada akun di perangkat ini. Silakan daftar.", true); pilihTab("daftar"); return; }
+  if (!confirm("Hapus " + jumlah + " akun di perangkat ini?\n\nBerguna bila lupa sandi. Akun di perangkat lain (HP peserta) tidak terpengaruh, dan ruangan TC tetap aman.")) return;
+  Lokal.hapusSemuaUsers();
+  sessionStorage.removeItem("ztc_login");
+  pengguna = null;
+  pilihTab("daftar");
+  pesanAuth("Akun terhapus. Silakan daftar akun baru (pilih 🛡️ Admin bila Anda pengelola).", true);
+}
+
 function resetSemuaAkun() {
   if (MODE_FIREBASE) { alert("Mode Online: hapus akun lewat Firebase Console."); return; }
   if (!confirm("Hapus SEMUA akun di perangkat ini?\n\nTermasuk akun Anda sendiri. Anda akan kembali ke layar daftar dan bisa mulai dari nol.\n\nRuangan TC tidak ikut terhapus.")) return;
