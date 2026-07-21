@@ -110,12 +110,8 @@
 
     <!-- Kelola akun & undangan (khusus ADMIN) -->
     <section id="bagian-akun" class="kartu tersembunyi">
-      <h2>👥 Undang Pelatih &amp; Peserta (Admin)</h2>
-      <p class="ket">Buat link undangan berperan. Yang diundang cukup klik link, isi nama &amp; sandi sendiri — perannya otomatis, tanpa perlu kode rahasia.</p>
-      <div class="baris-tombol">
-        <button class="tombol utama" onclick="undangPeran('pelatih')">🎓 Link Undangan Pelatih</button>
-        <button class="tombol utama" onclick="undangPeran('peserta')">🧕 Link Undangan Peserta</button>
-      </div>
+      <h2>👥 Kelola Akun (Admin)</h2>
+      <p class="ket">Undangan pelatih &amp; peserta dibuat <b>per ruangan</b> — lihat tombol di tiap ruangan pada daftar di bawah. Dengan begitu penerima undangan tidak mungkin salah masuk cabang.</p>
 
       <h3 class="sub-judul">Akun di perangkat ini</h3>
       <div id="daftar-akun" class="daftar-akun"><p class="ket">Memuat…</p></div>
@@ -123,8 +119,17 @@
       <p class="ket kecil-gelap">Menghapus semua akun di perangkat ini (termasuk akun Anda), lalu kembali ke layar daftar. Ruangan TC tidak ikut terhapus.</p>
     </section>
 
+    <!-- Ruangan yang ditugaskan (pelatih & peserta) -->
+    <section id="bagian-ruang-saya" class="kartu kartu-sorot tersembunyi">
+      <h2>📍 Ruangan Anda</h2>
+      <div id="ruang-saya-nama" class="ruang-nama">—</div>
+      <div id="ruang-saya-kode" class="ket">—</div>
+      <button class="tombol utama besar" onclick="masukRuangSaya()">🎥 Masuk Ruangan Sekarang</button>
+      <p class="ket kecil-gelap">Anda ditugaskan admin ke ruangan ini. Tidak perlu memilih — tombol di atas selalu membawa Anda ke ruangan yang benar.</p>
+    </section>
+
     <!-- Daftar ruangan -->
-    <section class="kartu">
+    <section id="bagian-daftar-ruangan" class="kartu">
       <h2>Daftar Ruangan TC</h2>
       <div id="daftar-sesi" class="daftar-sesi">
         <p class="ket">Memuat…</p>

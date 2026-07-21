@@ -58,6 +58,9 @@ window.JITSI_SERVERS = [
 // Kode boleh diganti (huruf/angka, diawali "TC-"). Kode inilah
 // yang menjadi alamat ruangan — jangan ada yang kembar.
 // ============================================================
+// Susunan orang di TIAP ruangan TC.
+window.KAPASITAS_RUANGAN = { admin: 1, pelatih: 1, peserta: 15 };
+
 window.RUANGAN_BAWAAN = [
   { judul: "TC Tilawah Al-Qur'an",        kode: "TC-TILAWAH" },
   { judul: "TC Tartil / Murottal",        kode: "TC-MUROTTAL" },

@@ -64,19 +64,19 @@ var Lokal = {
   ambilSesi: function () { return JSON.parse(localStorage.getItem("ztc_sesi") || "[]"); },
   simpanSemuaSesi: function (s) { localStorage.setItem("ztc_sesi", JSON.stringify(s)); },
 
-  daftar: async function (nama, email, sandi, peran) {
+  daftar: async function (nama, email, sandi, peran, ruang) {
     var users = Lokal.ambilUsers();
     if (users[email]) throw new Error("Email sudah terdaftar. Silakan masuk.");
-    users[email] = { nama: nama, hash: await hashSandi(sandi), peran: peran };
+    users[email] = { nama: nama, hash: await hashSandi(sandi), peran: peran, ruang: ruang || null };
     Lokal.simpanUsers(users);
-    return { nama: nama, email: email, peran: peran };
+    return { nama: nama, email: email, peran: peran, ruang: ruang || null };
   },
   masuk: async function (email, sandi) {
     var users = Lokal.ambilUsers();
     var u = users[email];
     if (!u) throw new Error("Email belum terdaftar. Silakan daftar dulu.");
     if (u.hash !== await hashSandi(sandi)) throw new Error("Sandi salah.");
-    return { nama: u.nama, email: email, peran: u.peran };
+    return { nama: u.nama, email: email, peran: u.peran, ruang: u.ruang || null };
   },
   keluar: async function () {},
 
@@ -106,17 +106,17 @@ var Lokal = {
 
 /* ---------------- PENYIMPANAN: MODE FIREBASE ---------------- */
 var Fb = {
-  daftar: async function (nama, email, sandi, peran) {
+  daftar: async function (nama, email, sandi, peran, ruang) {
     var kred = await auth.createUserWithEmailAndPassword(email, sandi);
     await kred.user.updateProfile({ displayName: nama });
-    await db.collection("pengguna").doc(email).set({ nama: nama, peran: peran });
-    return { nama: nama, email: email, peran: peran };
+    await db.collection("pengguna").doc(email).set({ nama: nama, peran: peran, ruang: ruang || null });
+    return { nama: nama, email: email, peran: peran, ruang: ruang || null };
   },
   masuk: async function (email, sandi) {
     await auth.signInWithEmailAndPassword(email, sandi);
     var doc = await db.collection("pengguna").doc(email).get();
     var d = doc.exists ? doc.data() : {};
-    return { nama: d.nama || email, email: email, peran: d.peran || "peserta" };
+    return { nama: d.nama || email, email: email, peran: d.peran || "peserta", ruang: d.ruang || null };
   },
   keluar: async function () { await auth.signOut(); },
 
@@ -191,8 +191,11 @@ async function prosesDaftar(e) {
     }
   }
 
+  // Peserta/pelatih dari undangan langsung terikat ke ruangan cabangnya.
+  var ruang = (peran === "admin") ? null : (lewatUndangan ? kodeUndangan : null);
+
   try {
-    pengguna = await Simpan().daftar(nama, email, sandi, peran);
+    pengguna = await Simpan().daftar(nama, email, sandi, peran, ruang);
     sessionStorage.setItem("ztc_login", JSON.stringify(pengguna));
     pesanAuth("Pendaftaran berhasil!", true);
     bukaDasbor();
@@ -239,18 +242,40 @@ function bukaDasbor() {
   var labelPeran = { admin: "🛡️ Admin", pelatih: "🎓 Pelatih (Host)", peserta: "🧕 Peserta TC" };
   $("dasbor-nama").textContent = pengguna.nama;
   $("dasbor-peran").textContent = labelPeran[pengguna.peran] || "🧕 Peserta TC";
-  $("bagian-pelatih").classList.toggle("tersembunyi", pengguna.peran !== "admin");
-  $("bagian-akun").classList.toggle("tersembunyi", pengguna.peran !== "admin");
+  var isAdmin = pengguna.peran === "admin";
+  $("bagian-pelatih").classList.toggle("tersembunyi", !isAdmin);
+  $("bagian-akun").classList.toggle("tersembunyi", !isAdmin);
+
+  // Kartu "Ruangan Anda" untuk pelatih/peserta yang sudah ditugaskan.
+  var punyaRuang = !isAdmin && !!pengguna.ruang;
+  $("bagian-ruang-saya").classList.toggle("tersembunyi", !punyaRuang);
+  $("bagian-daftar-ruangan").classList.toggle("tersembunyi", punyaRuang);
+  if (punyaRuang) {
+    $("ruang-saya-nama").textContent = judulRuangan(pengguna.ruang);
+    $("ruang-saya-kode").textContent = "Kode: " + pengguna.ruang + " · Peran Anda: " +
+      (pengguna.peran === "pelatih" ? "🎓 Pelatih (Host)" : "🧕 Peserta TC");
+  }
+
   tampilLayar("layar-dasbor");
   muatDaftarSesi();
-  if (pengguna.peran === "admin") muatDaftarAkun();
+  if (isAdmin) muatDaftarAkun();
 
   // Datang lewat link undangan? Langsung masukkan ke ruang sesi.
   if (kodeUndangan) {
     var k = kodeUndangan;
     kodeUndangan = null;
     history.replaceState(null, "", location.pathname);
-    mulaiMeeting(k, "Sesi TC Tilawah");
+
+    // Cegah salah ruangan: ingatkan bila kode tidak sesuai penugasan.
+    if (!isAdmin && pengguna.ruang && pengguna.ruang !== k) {
+      if (!confirm("⚠️ Link ini menuju ruangan lain!\n\nRuangan Anda: " + judulRuangan(pengguna.ruang) +
+        "\nLink ini: " + judulRuangan(k) +
+        "\n\nBiasanya ini berarti link tertukar. Tetap lanjut ke " + judulRuangan(k) + "?")) {
+        masukRuangSaya();
+        return;
+      }
+    }
+    mulaiMeeting(k, judulRuangan(k));
   }
 }
 
@@ -271,11 +296,19 @@ async function muatDaftarSesi() {
   sesi = ruanganBawaan().concat(sesi);
   sesi.sort(function (a, b) { return (a.judul || "").localeCompare(b.judul || ""); });
 
+  var isAdmin = pengguna.peran === "admin";
+
+  // Pelatih & peserta hanya melihat ruangan yang ditugaskan kepadanya,
+  // supaya tidak mungkin masuk cabang TC yang salah.
+  if (!isAdmin && pengguna.ruang) {
+    sesi = sesi.filter(function (s) { return s.kode === pengguna.ruang; });
+  }
+
   if (!sesi.length) {
     wadah.innerHTML = '<p class="ket">' +
-      (pengguna.peran === "admin"
+      (isAdmin
         ? "Belum ada ruangan. Buat ruangan TC untuk tiap cabang di atas."
-        : "Gunakan <b>link atau kode ruangan dari admin</b> cabang Anda (daftar ruangan hanya tampil di perangkat admin).") + "</p>";
+        : "Anda belum ditugaskan ke ruangan mana pun. Minta <b>link undangan ruangan</b> kepada admin LPTQ cabang Anda.") + "</p>";
     return;
   }
 
@@ -283,22 +316,26 @@ async function muatDaftarSesi() {
   sesi.forEach(function (s) {
     var div = document.createElement("div");
     div.className = "item-sesi";
-    var adminKah = pengguna.peran === "admin" && !s.bawaan; // ruangan bawaan tidak bisa dihapus
+    var bolehHapus = isAdmin && !s.bawaan; // ruangan bawaan tidak bisa dihapus
     div.innerHTML =
       '<div class="info">' +
         '<div class="judul"></div>' +
-        '<div class="detail">Kode: <span class="kode">' + s.kode + "</span> · 👤 Dibuat: <span class='pembuat'></span></div>" +
+        '<div class="detail">Kode: <span class="kode">' + s.kode + "</span> · 👥 " +
+          KAPASITAS.admin + " Admin + " + KAPASITAS.pelatih + " Pelatih + maks " + KAPASITAS.peserta + " Peserta</div>" +
       "</div>" +
       '<div class="aksi">' +
         '<button class="tombol kecil emas btn-masuk">Masuk</button>' +
-        '<button class="tombol kecil abu btn-undang">Salin Undangan</button>' +
-        (adminKah ? '<button class="tombol kecil merah btn-hapus">Hapus</button>' : "") +
+        (isAdmin ? '<button class="tombol kecil abu btn-undang-pelatih">🎓 Undang Pelatih</button>' : "") +
+        (isAdmin ? '<button class="tombol kecil abu btn-undang-peserta">🧕 Undang Peserta</button>' : "") +
+        (bolehHapus ? '<button class="tombol kecil merah btn-hapus">Hapus</button>' : "") +
       "</div>";
     div.querySelector(".judul").textContent = s.judul;
-    div.querySelector(".pembuat").textContent = s.pembuatNama || "-";
     div.querySelector(".btn-masuk").onclick = function () { mulaiMeeting(s.kode, s.judul); };
-    div.querySelector(".btn-undang").onclick = function () { salinUndangan(s.kode, s.judul); };
-    if (adminKah) {
+    if (isAdmin) {
+      div.querySelector(".btn-undang-pelatih").onclick = function () { undangPeran("pelatih", s.kode, s.judul); };
+      div.querySelector(".btn-undang-peserta").onclick = function () { undangPeran("peserta", s.kode, s.judul); };
+    }
+    if (bolehHapus) {
       div.querySelector(".btn-hapus").onclick = async function () {
         if (!confirm('Hapus ruangan "' + s.judul + '"?')) return;
         await Simpan().hapusSesi(s.id);
@@ -307,6 +344,10 @@ async function muatDaftarSesi() {
     }
     wadah.appendChild(div);
   });
+}
+
+function masukRuangSaya() {
+  if (pengguna && pengguna.ruang) mulaiMeeting(pengguna.ruang, judulRuangan(pengguna.ruang));
 }
 
 async function buatSesi(e) {
@@ -354,18 +395,21 @@ function linkUndangan(kode) {
 
 // Admin membuat link undangan; penerima cukup isi nama & sandi,
 // perannya sudah ditentukan lewat link (tanpa kode rahasia).
-function undangPeran(peran) {
+// Undangan SELALU terikat satu ruangan, supaya penerima tidak mungkin
+// mendarat di cabang TC yang salah.
+function undangPeran(peran, kodeRuang, namaRuang) {
   var label = peran === "pelatih" ? "Pelatih (Host)" : "Peserta TC";
-  var link = location.origin + location.pathname + "?undang=" + peran;
+  var link = location.origin + location.pathname + "?undang=" + peran + "&kode=" + kodeRuang;
   var teks = "Undangan LPTQ NTB TC Online\n" +
-    "Anda diundang sebagai: " + label + "\n\n" +
+    "Ruangan: " + namaRuang + "\n" +
+    "Peran Anda: " + label + "\n\n" +
     "1. Klik link ini: " + link + "\n" +
     "2. Isi nama lengkap, email, dan sandi Anda sendiri\n" +
-    "3. Selesai — Anda langsung masuk sebagai " + label + "\n\n" +
-    "Setelah itu, tunggu link ruangan TC dari admin untuk mulai sesi.";
+    "3. Selesai — Anda langsung masuk ke ruangan " + namaRuang + "\n\n" +
+    "Link ini khusus untuk ruangan tersebut, jadi Anda tidak akan salah masuk.";
 
   function beres() {
-    alert("Link undangan " + label + " sudah disalin!\n\nTempel & kirim lewat WA.\n\nCatatan: siapa pun yang punya link ini bisa mendaftar sebagai " + label + " — kirim hanya ke orang yang berhak.");
+    alert("Undangan " + label + " untuk ruangan\n\"" + namaRuang + "\"\nsudah disalin!\n\nTempel & kirim lewat WA hanya kepada orang yang berhak — siapa pun yang punya link ini bisa mendaftar sebagai " + label + " di ruangan itu.");
   }
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(teks).then(beres, function () { prompt("Salin undangan ini:", teks); });
@@ -411,7 +455,16 @@ function resetDariLayarMasuk() {
   if (MODE_FIREBASE) { alert("Mode Online: reset sandi lewat Firebase."); return; }
   var jumlah = Lokal.semuaUsers().length;
   if (!jumlah) { pesanAuth("Belum ada akun di perangkat ini. Silakan daftar.", true); pilihTab("daftar"); return; }
-  if (!confirm("Hapus " + jumlah + " akun di perangkat ini?\n\nBerguna bila lupa sandi. Akun di perangkat lain (HP peserta) tidak terpengaruh, dan ruangan TC tetap aman.")) return;
+
+  // Dikunci Kode Admin supaya peserta tidak sembarangan menghapus akunnya
+  // sendiri lalu mengira aplikasinya rusak.
+  var kode = prompt("Menghapus akun butuh Kode Admin.\n\nHubungi admin LPTQ bila Anda lupa sandi.\n\nMasukkan Kode Admin:");
+  if (kode === null) return;
+  if (kode.trim() !== window.KODE_ADMIN) {
+    pesanAuth("Kode Admin salah. Akun tidak dihapus. Silakan hubungi admin LPTQ.", false);
+    return;
+  }
+  if (!confirm("Hapus " + jumlah + " akun di perangkat ini?\n\nAkun di perangkat lain (HP peserta) tidak terpengaruh, dan ruangan TC tetap aman.")) return;
   Lokal.hapusSemuaUsers();
   sessionStorage.removeItem("ztc_login");
   pengguna = null;
@@ -456,6 +509,17 @@ function gabungDenganKode(e) {
 var kodeAktif = "";
 var kodeUndangan = null;   // kode dari link undangan (?kode=TC-XXXXXX)
 var peranUndangan = null;  // peran dari link undangan admin (?undang=pelatih|peserta)
+var ruangUndangan = null;  // ruangan yang ditugaskan admin lewat link undangan
+
+// Susunan tiap ruangan TC (bisa diubah di firebase-config.js)
+var KAPASITAS = window.KAPASITAS_RUANGAN || { admin: 1, pelatih: 1, peserta: 15 };
+
+function judulRuangan(kode) {
+  var semua = ruanganBawaan();
+  try { semua = semua.concat(Lokal.ambilSesi()); } catch (e) {}
+  var r = semua.filter(function (x) { return x.kode === kode; })[0];
+  return r ? r.judul : kode;
+}
 
 /* --- Server video: daftar + cadangan otomatis ---
    Semua peserta WAJIB di server yang sama agar bertemu, jadi server
@@ -659,7 +723,7 @@ function salinKode() {
   // Muat mesin video lebih awal supaya masuk ruang terasa cepat
   siapkanJitsi().catch(function () {});
 
-  // Undangan berperan dari admin: ?undang=pelatih | ?undang=peserta
+  // Undangan berperan dari admin: ?undang=pelatih|peserta &kode=TC-XXXX
   var paramUndang = (param.get("undang") || "").toLowerCase();
   if (paramUndang === "pelatih" || paramUndang === "peserta") peranUndangan = paramUndang;
 

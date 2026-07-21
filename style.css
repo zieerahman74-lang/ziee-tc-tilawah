@@ -184,6 +184,11 @@ input:focus { outline: none; border-color: var(--hijau); }
 .detail-akun { font-size: 12px; color: #6b7280; word-break: break-all; }
 .ket.kecil-gelap { font-size: 12px; color: #6b7280; margin-top: 6px; }
 .ket.tengah { text-align: center; }
+
+/* Kartu "Ruangan Anda" */
+.kartu-sorot { border: 2px solid var(--hijau); background: var(--hijau-muda); }
+.ruang-nama { font-size: 21px; font-weight: 800; color: var(--hijau-tua); margin-bottom: 4px; }
+.tombol.besar { width: 100%; padding: 15px; font-size: 16px; margin-top: 14px; }
 .tautan { color: var(--hijau); font-weight: 600; text-decoration: underline; }
 
 /* ====== Meeting ====== */
